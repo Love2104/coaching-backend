@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 // Import routes
@@ -22,6 +23,25 @@ const { errorHandler } = require('./middleware/errorHandler');
 const { notFound } = require('./middleware/notFound');
 
 const app = express();
+
+// Ensure upload directories exist
+const uploadDirs = [
+  'uploads',
+  'uploads/avatars',
+  'uploads/thumbnails',
+  'uploads/syllabus',
+  'uploads/materials',
+  'uploads/payments',
+  'uploads/forum',
+  'uploads/misc'
+];
+
+uploadDirs.forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`Created directory: ${dir}`);
+  }
+});
 
 // Security middleware
 app.use(helmet());
@@ -76,6 +96,26 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// API documentation endpoint
+app.get('/api/docs', (req, res) => {
+  res.json({
+    message: 'Student Coaching Platform API',
+    version: '1.0.0',
+    documentation: 'Please refer to README.md for complete API documentation',
+    endpoints: {
+      auth: '/api/auth',
+      users: '/api/users',
+      courses: '/api/courses',
+      tests: '/api/tests',
+      forum: '/api/forum',
+      payments: '/api/payments',
+      notifications: '/api/notifications',
+      invites: '/api/invites',
+      admin: '/api/admin'
+    }
+  });
+});
+
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);
@@ -84,6 +124,8 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`API Documentation available at: http://localhost:${PORT}/api/docs`);
+  console.log(`Health check available at: http://localhost:${PORT}/api/health`);
 });
 
 module.exports = app;

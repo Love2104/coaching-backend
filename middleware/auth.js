@@ -122,10 +122,40 @@ const requireCoursePurchase = async (req, res, next) => {
       });
     }
     
-    // Populate enrolled courses to check payment status
-    await req.user.populate('enrolledCourses.course');
+    // Check if user has purchased any course
+    const hasPurchasedCourse = req.user.hasPurchasedAnyCourse();
     
-    const hasPurchasedCourse = req.user.enrolledCourses.some(
+    if (!hasPurchasedCourse) {
+      return res.status(403).json({
+        success: false,
+        message: 'You must purchase at least one course to access the forum'
+      });
+    }
+    
+    next();
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Server error checking course purchase'
+    });
+  }
+};
+
+// Alternative method with database query for more reliability
+const requireCoursePurchaseDB = async (req, res, next) => {
+  try {
+    if (!req.user || req.user.role !== 'student') {
+      return res.status(403).json({
+        success: false,
+        message: 'Student access required'
+      });
+    }
+    
+    // Query database to check for completed payments
+    const User = require('../models/User');
+    const user = await User.findById(req.user._id).populate('enrolledCourses.course');
+    
+    const hasPurchasedCourse = user.enrolledCourses.some(
       enrollment => enrollment.paymentStatus === 'completed'
     );
     
@@ -188,5 +218,6 @@ module.exports = {
   requireAdmin,
   requireStudent,
   requireCoursePurchase,
+  requireCoursePurchaseDB,
   requireOwnershipOrSuperAdmin
 };
